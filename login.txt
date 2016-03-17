@@ -1,0 +1,10 @@
+{
+    'notinited': 'EDIT, THEN REMOVE THIS LINE',
+    'server': 'smtp.foo.com',
+    'user': 'bar',
+    'fullemail': 'bar@foo.com',
+    'pass': 'xxx',
+    'tos': ['bar@foo.com',
+            'bar@gmail.com']
+    'nick': 'rssbot'
+}

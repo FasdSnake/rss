@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 # coding=utf-8
 
-import os, time, datetime
+import os, sys, time, datetime, smtplib
 import urllib.request
 import xml.etree.ElementTree as ET
 
 TFORM = '%a, %d %b %Y %H:%M:%S GMT'
 
 def parseItem(item):
-    result = dict()
+    result = {}
     for k in item.getchildren():
         result[k.tag] = k.text
     return result['guid'], result
@@ -19,6 +19,43 @@ except FileNotFoundError:
     os.mkdir('data')
     data = set()
 
+def sendmail(title, body):
+    with open('login.txt') as f:
+        args = eval(f.read())
+    if 'notinited' in args:
+        print('Please edit login.txt first.', file = sys.stderr)
+        exit(1)
+    if type(title) is str:
+        title = title.encode()
+    if type(body) is str:
+        body = body.encode()
+    con = smtplib.SMTP(args['server'])
+    con.ehlo()
+    con.login(args['user'], args['pass'])
+    for to in args['tos']:
+        con.sendmail(args['fullemail'], to, b'From: '+args['nick'].encode()+b'<'+args['fullemail'].encode()+b'>\nTo: <'+to.encode()+b'>\nContent-Type: text/plain; charset=utf-8;\nSubject: '+title+b'\n\n'+body)
+    con.close()
+
+def show(guid, detail):
+    result = ''
+    if 'title' in detail:
+        result += detail['title'] + '\n'
+    if 'link' in detail:
+        result += detail['link'] + '\n\n'
+    else:
+        result += guid + '\n\n'
+    if 'description' in detail:
+        result += detail['description'] + '\n'
+    #result += '\n'
+    '''
+    for key in detail:
+        if key in ('title', 'link', 'guid', 'description'):
+            continue
+        if detail[key]:
+            result += key + ': ' + detail[key] + '\n\n'
+    '''
+    return result
+
 with open('list.txt') as f:
     os.chdir('data')
     rsss = list(map(str.strip, f.readlines()))
@@ -26,14 +63,14 @@ with open('list.txt') as f:
     for i in range(count):
         rss = rsss[i]
         name, _, url = rss.partition(': ')
-        print('[%3d/%3d] %s' % (i+1, count, name))
+        print('[%3d/%3d] %s' % (i+1, count, name), file = sys.stderr)
 
         # get the last info
         if name in data:
             with open(name) as df:
                 lastmodi, last = eval(df.read())
         else:
-            lastmodi, last = 0, dict()
+            lastmodi, last = 0, set()
 
         # fetch the new info
         changed = False
@@ -51,10 +88,10 @@ with open('list.txt') as f:
                     guid, detail = parseItem(item)
                     if guid not in last:
                         changed = True
-                        last[guid] = detail
-                        print(name + ': ' + guid)
+                        last.add(guid)
+                        sendmail('RSS <%s>: new post' % name, show(guid, detail))
         except Exception as e:
-            print('fail to fetch <%s>: %s' % (name, str(e)))
+            print('fail to fetch <%s>: %s' % (name, str(e)), file = sys.stderr)
             continue
 
         # write to the file
