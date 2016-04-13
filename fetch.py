@@ -20,21 +20,19 @@ except FileNotFoundError:
     data = set()
 
 def sendmail(title, body):
-    with open('login.txt') as f:
+    with open('../login.txt') as f:
         args = eval(f.read())
     if 'notinited' in args:
         print('Please edit login.txt first.', file = sys.stderr)
         exit(1)
-    if type(title) is str:
-        title = title.encode()
-    if type(body) is str:
-        body = body.encode()
-    con = smtplib.SMTP(args['server'])
-    con.ehlo()
-    con.login(args['user'], args['pass'])
+    if type(title) is not str:
+        title = title.decode()
+    if type(body) is not str:
+        body = body.decode()
     for to in args['tos']:
-        con.sendmail(args['fullemail'], to, b'From: '+args['nick'].encode()+b'<'+args['fullemail'].encode()+b'>\nTo: <'+to.encode()+b'>\nContent-Type: text/plain; charset=utf-8;\nSubject: '+title+b'\n\n'+body)
-    con.close()
+        p = os.popen('mail -a "Content-Type: text/plain; charset=utf-8;" -s "'+title+'" '+to, 'w')
+        p.write(body)
+        p.close()
 
 def show(guid, detail):
     result = ''
@@ -63,7 +61,7 @@ with open('list.txt') as f:
     for i in range(count):
         rss = rsss[i]
         name, _, url = rss.partition(': ')
-        print('[%3d/%3d] %s' % (i+1, count, name), file = sys.stderr)
+        print('[%3d/%3d] %s' % (i+1, count, name), file = sys.stderr, flush = True)
 
         # get the last info
         if name in data:
@@ -91,7 +89,7 @@ with open('list.txt') as f:
                         last.add(guid)
                         sendmail('RSS <%s>: new post' % name, show(guid, detail))
         except Exception as e:
-            print('fail to fetch <%s>: %s' % (name, str(e)), file = sys.stderr)
+            print('fail to fetch <%s>: %s' % (name, str(e)), file = sys.stderr, flush = True)
             continue
 
         # write to the file
