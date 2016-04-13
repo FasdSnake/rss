@@ -20,7 +20,7 @@ except FileNotFoundError:
     data = set()
 
 def sendmail(title, body):
-    with open('../login.txt') as f:
+    with open('login.txt') as f:
         args = eval(f.read())
     if 'notinited' in args:
         print('Please edit login.txt first.', file = sys.stderr)
